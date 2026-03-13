@@ -1,13 +1,17 @@
 package com.kh.mallapi.controller;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,9 +27,8 @@ import lombok.extern.log4j.Log4j2;
 
 @RestController
 @RequiredArgsConstructor
-// 의존성주입
 @Log4j2
-@RequestMapping("/api/products") // 공통주소
+@RequestMapping("/api/products")
 public class ProductController {
 	private final CustomFileUtil fileUtil;
 	private final ProductService productService;
@@ -33,11 +36,8 @@ public class ProductController {
 	@PostMapping("/")
 	public Map<String, Long> register(ProductDTO productDTO) {
 		log.info("rgister: " + productDTO);
-		// 첨부된 파일
 		List<MultipartFile> files = productDTO.getFiles();
-		// 중복되지않게 파일명을 작성, 내부폴더 복사하고, 중복되지않은 이름을 리스트로 만들어서 리턴
 		List<String> uploadFileNames = fileUtil.saveFiles(files);
-		// 업로드된 파일을 중복되지않는 파일명 리스트를 productDTO 로 저장
 		productDTO.setUploadFileNames(uploadFileNames);
 		log.info(uploadFileNames);
 		// 서비스 호출
@@ -57,7 +57,75 @@ public class ProductController {
 	}
 
 	@GetMapping("/{pno}")
-	public ProductDTO read(@PathVariable(name = "pno") Long pno) {
+	public ProductDTO read(@PathVariable Long pno) {
 		return productService.get(pno);
 	}
+
+	@PutMapping("/{pno}")
+	public Map<String, String> modify(@PathVariable Long pno, ProductDTO productDTO) {
+		productDTO.setPno(pno);
+
+		// 수정 전 기존 상품 조회
+		ProductDTO oldProductDTO = productService.get(pno);
+		// 기존 파일 목록
+		List<String> oldFileNames = oldProductDTO.getUploadFileNames();
+
+		// 새로 업로드된 파일 저장
+		List<MultipartFile> files = productDTO.getFiles();
+		List<String> newUploadedFileNames = fileUtil.saveFiles(files);
+
+		// 화면에서 유지할 파일 목록
+		List<String> keptFileNames = productDTO.getUploadFileNames();
+		if (keptFileNames == null) {
+			keptFileNames = new ArrayList<>();
+		}
+
+		// 최종 파일 목록 = 유지 파일 + 새 업로드 파일
+		List<String> finalFileNames = new ArrayList<>(keptFileNames);
+		if (newUploadedFileNames != null && !newUploadedFileNames.isEmpty()) {
+			finalFileNames.addAll(newUploadedFileNames);
+		}
+
+		// 최종 파일 목록을 DTO에 반영
+		productDTO.setUploadFileNames(finalFileNames);
+
+		// DB 수정
+		productService.modify(productDTO);
+
+		// 삭제할 기존 파일 찾기
+		if (oldFileNames != null && !oldFileNames.isEmpty()) {
+			List<String> removeFiles = oldFileNames.stream().filter(fileName -> !finalFileNames.contains(fileName))
+					.collect(Collectors.toList());
+
+			fileUtil.deleteFiles(removeFiles);
+		}
+
+		return Map.of("RESULT", "SUCCESS");
+	}
+
+	@DeleteMapping("/{pno}")
+	public Map<String, String> remove(@PathVariable("pno") Long pno) {
+		// 삭제해야 할 파일들 알아내기
+		List<String> oldFileNames = productService.get(pno).getUploadFileNames();
+		
+		//테이블 flag = true  
+		productService.remove(pno);
+		
+		//기존이미지는 삭제
+		fileUtil.deleteFiles(oldFileNames);
+		return Map.of("RESULT", "SUCCESS");
+	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

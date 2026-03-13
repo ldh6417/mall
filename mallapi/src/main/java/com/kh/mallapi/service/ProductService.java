@@ -15,4 +15,6 @@ public interface ProductService {
 	public ProductDTO get(Long pno);
 
 	public void modify(ProductDTO productDTO);
+
+	public void remove(Long pno);
 }

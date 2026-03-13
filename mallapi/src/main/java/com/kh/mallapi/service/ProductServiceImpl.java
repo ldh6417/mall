@@ -1,6 +1,7 @@
 package com.kh.mallapi.service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -63,19 +64,18 @@ public class ProductServiceImpl implements ProductService {
 		ProductDTO productDTO = ProductDTO.builder().pno(product.getPno()).pname(product.getPname())
 				.pdesc(product.getPdesc()).price(product.getPrice()).build();
 		List<ProductImage> imageList = product.getImageList();
-		
+
 		if (imageList == null || imageList.size() == 0) {
 			return productDTO;
 		}
-		
-		List<String> fileNameList = imageList.stream().map(productImage -> 
-		productImage.getFileName()).toList();
+
+		List<String> fileNameList = imageList.stream().map(productImage -> productImage.getFileName()).toList();
 
 		productDTO.setUploadFileNames(fileNameList);
 		return productDTO;
 	}
 
-	//DTO => 영속성 entity
+	// DTO => 영속성 entity
 	private Product dtoToEntity(ProductDTO productDTO) {
 		Product product = Product.builder().pno(productDTO.getPno()).pname(productDTO.getPname())
 				.pdesc(productDTO.getPdesc()).price(productDTO.getPrice()).build();
@@ -97,6 +97,36 @@ public class ProductServiceImpl implements ProductService {
 		Product product = result.orElseThrow();
 		ProductDTO productDTO = entityToDTO(product);
 		return productDTO;
+	}
+
+	@Override
+	public void modify(ProductDTO productDTO) {
+		// 1. read
+		Optional<Product> result = productRepository.findById(productDTO.getPno());
+		Product product = result.orElseThrow();
+
+		// change pname, pdesc, price
+		product.changeName(productDTO.getPname());
+		product.changeDesc(productDTO.getPdesc());
+		product.changePrice(productDTO.getPrice());
+
+		// 기존의 이미지 파일명을 모두 삭제한다.
+		product.clearList();
+
+		// 새로 업로드된 파일을 내부폴더 중복되지않는 파일명으로 저장하고 저장된 이름을 리스트로 가져온다.
+		List<String> uploadFileNames = productDTO.getUploadFileNames();
+
+		if (uploadFileNames != null && !uploadFileNames.isEmpty()) {
+			uploadFileNames.stream().forEach(uploadName -> {
+				product.addImageString(uploadName);
+			});
+		}
+		productRepository.save(product);
+	}
+
+	@Override
+	public void remove(Long pno) {
+		productRepository.updateToDelete(pno, true);
 	}
 
 }
