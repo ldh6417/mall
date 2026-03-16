@@ -96,6 +96,13 @@ public class ProductServiceImpl implements ProductService {
 		java.util.Optional<Product> result = productRepository.selectOne(pno);
 		Product product = result.orElseThrow();
 		ProductDTO productDTO = entityToDTO(product);
+		
+		List<String> fileNameList = product.getImageList().stream()
+	            .map(images -> images.getFileName())
+	            .collect(Collectors.toList());
+		
+		productDTO.setUploadFileNames(fileNameList);
+		
 		return productDTO;
 	}
 

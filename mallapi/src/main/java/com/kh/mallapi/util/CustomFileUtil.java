@@ -52,13 +52,14 @@ public class CustomFileUtil {
 	}
 
 	public List<String> saveFiles(List<MultipartFile> files) throws RuntimeException {
-		// size() == 0 대신 isEmpty() 권장
-		if (files == null || files.isEmpty()) {
-			return null;
-		}
-
 		// 절대 중복되지않는 파일명을 만들어서 저장하는 리스트
 		List<String> uploadNames = new ArrayList<>();
+
+		// size() == 0 대신 isEmpty() 권장
+		if (files == null || files.isEmpty()) {
+			uploadNames.add("default.jpg");
+			return uploadNames;
+		}
 
 		for (MultipartFile multipartFile : files) {
 			String savedName = UUID.randomUUID().toString() + "_" + multipartFile.getOriginalFilename();
@@ -105,18 +106,17 @@ public class CustomFileUtil {
 		return ResponseEntity.ok().headers(headers).body(resource);
 	}
 
-	
 	public void deleteFiles(List<String> fileNames) {
 		if (fileNames == null || fileNames.isEmpty()) {
 			return;
 		}
-		
+
 		fileNames.forEach(fileName -> {
 			// 썸네일이 있는지 확인하고 삭제
 			String thumbnailFileName = "s_" + fileName;
-			// 썸네일이미지 경로 확인 
+			// 썸네일이미지 경로 확인
 			Path thumbnailPath = Paths.get(uploadPath, thumbnailFileName);
-			//원본 이미지 경로 
+			// 원본 이미지 경로
 			Path filePath = Paths.get(uploadPath, fileName);
 			try {
 				Files.deleteIfExists(filePath);

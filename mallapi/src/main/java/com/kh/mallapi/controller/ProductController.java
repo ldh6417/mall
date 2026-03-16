@@ -42,6 +42,12 @@ public class ProductController {
 		log.info(uploadFileNames);
 		// 서비스 호출
 		Long pno = productService.register(productDTO);
+
+		try {
+			Thread.sleep(3000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 		return Map.of("result", pno);
 	}
 
@@ -53,6 +59,12 @@ public class ProductController {
 	@GetMapping("/list")
 	public PageResponseDTO<ProductDTO> list(PageRequestDTO pageRequestDTO) {
 		log.info("list............." + pageRequestDTO);
+
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 		return productService.getList(pageRequestDTO);
 	}
 
@@ -107,25 +119,12 @@ public class ProductController {
 	public Map<String, String> remove(@PathVariable("pno") Long pno) {
 		// 삭제해야 할 파일들 알아내기
 		List<String> oldFileNames = productService.get(pno).getUploadFileNames();
-		
-		//테이블 flag = true  
+
+		// 테이블 flag = true
 		productService.remove(pno);
-		
-		//기존이미지는 삭제
+
+		// 기존이미지는 삭제
 		fileUtil.deleteFiles(oldFileNames);
 		return Map.of("RESULT", "SUCCESS");
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
